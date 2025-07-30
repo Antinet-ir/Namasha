@@ -3,13 +3,25 @@ from bs4 import BeautifulSoup
 import json
 import time
 import os
+import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler("namasha.log", encoding="utf-8"),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 BASE_URL = "https://www.namasha.com/channel"
 DELAY = 0.1
-MAX_ID_STEP = 10000
+MAX_ID_STEP = 1000
 FILENAME = "namasha_channels.json"
-MAX_THREADS = 1000
+MAX_THREADS = 100
 headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
 }
@@ -45,12 +57,14 @@ def fetch_channel(id_):
             "description": description,
             "avatar": avatar,
         }
-    except Exception:
+    except Exception as e:
+        logger.warning(f"[{id_}] ❌ Error: {e}")
         return None
 
 def save_results(results):
     with open(FILENAME, "w", encoding="utf-8") as f:
         json.dump(results, f, ensure_ascii=False, indent=2)
+    logger.info(f"Saved {len(results)} total channels.")
 
 def load_results():
     if os.path.exists(FILENAME):
@@ -66,7 +80,7 @@ def update_existing_channels(results):
             ch_id = future_to_id[future]
             data = future.result()
             if data:
-                print(f"[{ch_id}] ✅ Saved: {data['name']}")
+                logger.info(f"[{ch_id}] 🔁 Updated: {data['name']}")
                 updated_results.append(data)
     return updated_results
 
@@ -78,7 +92,7 @@ def fetch_new_channels(start_id, end_id, existing_ids):
             i = future_to_id[future]
             data = future.result()
             if data:
-                print(f"[{i}] ✅ Saved: {data['name']}")
+                logger.info(f"[{i}] ➕ New: {data['name']}")
                 new_results.append(data)
             else:
                 time.sleep(DELAY)
@@ -86,7 +100,7 @@ def fetch_new_channels(start_id, end_id, existing_ids):
 
 def main():
     results = load_results()
-
+    logger.info("Updating existing channels...")
     results = update_existing_channels(results)
 
     if results:
@@ -96,13 +110,14 @@ def main():
 
     start_id = last_id + 1
     end_id = start_id + MAX_ID_STEP
+    logger.info(f"Fetching new channels from ID {start_id} to {end_id}")
 
     existing_ids = set(ch["id"] for ch in results)
     new_channels = fetch_new_channels(start_id, end_id, existing_ids)
     results.extend(new_channels)
 
     save_results(results)
-    print("Scan Done.")
+    logger.info("✅ Scan Done.")
 
 if __name__ == "__main__":
     main()
