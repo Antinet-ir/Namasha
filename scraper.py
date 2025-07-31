@@ -95,6 +95,7 @@ def fetch_new_channels(start_id, end_id, existing_ids):
                 logger.info(f"[{i}] ➕ New: {data['name']}")
                 new_results.append(data)
             else:
+                if i % 100 == 0 : logger.info(f"[{i}] Not Fond ")
                 time.sleep(DELAY)
     return new_results
 
