@@ -19,9 +19,9 @@ logger = logging.getLogger(__name__)
 
 BASE_URL = "https://www.namasha.com/channel"
 DELAY = 0.1
-MAX_ID_STEP = 1000
+MAX_ID_STEP = 100000
 FILENAME = "namasha_channels.json"
-MAX_THREADS = 100
+MAX_THREADS = 1000
 headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
 }
